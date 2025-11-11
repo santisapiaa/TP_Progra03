@@ -13,7 +13,6 @@ import java.util.Map;
 public interface AlmacenRepository extends ReactiveNeo4jRepository<AlmacenEntity, String> {
 
     // Algoritmo BFS (Búsqueda en Anchura)
-    // Ahora devolvemos una sola fila con la colección de caminos: paths = [[nodeProps,...], [nodeProps,...], ...]
     @Query("MATCH (start:Almacen {nombre: $nombre}) " +
            "CALL apoc.path.expandConfig(start, { " +
            "\trelationshipFilter: 'RUTA', " +
@@ -27,7 +26,6 @@ public interface AlmacenRepository extends ReactiveNeo4jRepository<AlmacenEntity
     Mono<Map<String, Object>> findBfsPath(@Param("nombre") String nombre, @Param("maxDepth") int maxDepth);
 
     // Algoritmo DFS (Búsqueda en Profundidad)
-    // Misma idea que BFS pero con dfs: false
     @Query("MATCH (start:Almacen {nombre: $nombre}) " +
            "CALL apoc.path.expandConfig(start, { " +
            "\trelationshipFilter: 'RUTA', " +
@@ -39,4 +37,7 @@ public interface AlmacenRepository extends ReactiveNeo4jRepository<AlmacenEntity
            "WITH [node IN nodes(path) | properties(node)] AS pathNodes " +
            "RETURN {paths: collect(pathNodes)} AS result")
     Mono<Map<String, Object>> findDfsPath(@Param("nombre") String nombre, @Param("maxDepth") int maxDepth);
+
+              @Query("MATCH (a:Almacen)-[r:RUTA]-(b:Almacen) RETURN {from: a.nombre, to: b.nombre, cost: r.cost} AS edge")
+              reactor.core.publisher.Flux<Map<String, Object>> findAllEdges();
 }
