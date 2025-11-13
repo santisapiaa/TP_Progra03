@@ -26,6 +26,11 @@ public class Graph {
     }
 
     // Dijkstra: camino más corto entre dos nodos
+    // Análisis de Complejidad:
+    // - Inicialización: O(n)
+    // - Cada arista se procesa una vez con operaciones PriorityQueue O(log n)
+    // - Recurrencia: T(n) = O((n + n) log n)
+    // - Conclusión: Complejidad FINAL = O(n log n)
     public List<String> dijkstra(String origen, String destino) {
         if (!nodos.contains(origen) || !nodos.contains(destino)) return null;
 
@@ -72,6 +77,11 @@ public class Graph {
     }
 
     // Kruskal: árbol de expansión mínima
+    // Análisis de Complejidad:
+    // - Ordenamiento de aristas: O(n log n)
+    // - Operaciones UnionFind: O(n α(n)) [casi constante]
+    // - Recurrencia: T(n) = O(n log n) [dominante]
+    // - Conclusión: Complejidad FINAL = O(n log n)
     public List<Arista> kruskalMST() {
         List<Arista> todasAristas = new ArrayList<>();
         Set<String> vistas = new HashSet<>();
@@ -104,6 +114,11 @@ public class Graph {
     }
 
     // Prim: árbol de expansión mínima desde un nodo inicial
+    // Análisis de Complejidad:
+    // - PriorityQueue: O(log n) por operación
+    // - n aristas procesadas con log n por cada una
+    // - Recurrencia: T(n) = O(n log n)
+    // - Conclusión: Complejidad FINAL = O(n log n)
     public List<Arista> primMST(String inicio) {
         if (nodos.isEmpty()) return new ArrayList<>();
         
@@ -138,6 +153,11 @@ public class Graph {
     }
 
     // Obtener peso de arista entre dos nodos
+    // Análisis de Complejidad:
+    // - Iteración sobre aristas del nodo: O(grado)
+    // - En peor caso: O(n) [n = aristas del nodo origen]
+    // - Recurrencia: T(n) = O(1) + O(n) = O(n)
+    // - Conclusión: Complejidad FINAL = O(n)
     public double obtenerPeso(String nodoA, String nodoB) {
         List<Arista> aristas = listaAdyacencia.getOrDefault(nodoA, Collections.emptyList());
         double pesoMin = Double.POSITIVE_INFINITY;
@@ -152,6 +172,11 @@ public class Graph {
     }
 
     // Calcular costo total de un camino
+    // Análisis de Complejidad:
+    // - Bucle n pasos: O(n) donde n es longitud del camino
+    // - Cada paso llama obtenerPeso: O(n)
+    // - Recurrencia: T(n) = n * O(n) = O(n²)
+    // - Conclusión: Complejidad FINAL = O(n²)
     public double calcularCosto(List<String> camino) {
         if (camino == null || camino.size() < 2) return 0.0;
         
@@ -167,6 +192,11 @@ public class Graph {
     }
 
     // TSP Greedy: vecino más cercano
+    // Análisis de Complejidad:
+    // - Bucle externo: n nodos no visitados
+    // - Bucle interno: n candidatos por cada iteración
+    // - Recurrencia: T(n) = n * n = n²
+    // - Conclusión: Complejidad FINAL = O(n²)
     public List<String> tspVecinoCercano(String inicio) {
         if (nodos.isEmpty()) return new ArrayList<>();
         
@@ -207,6 +237,11 @@ public class Graph {
     }
 
     // Floyd-Warshall: todos los caminos más cortos
+    // Análisis de Complejidad:
+    // - Tres bucles anidados: k, i, j
+    // - Cada bucle itera n veces
+    // - Recurrencia: T(n) = n * n * n = n³
+    // - Conclusión: Complejidad FINAL = O(n³)
     public Map<String, Object> floydWarshall() {
         List<String> listaNodos = new ArrayList<>(nodos);
         int n = listaNodos.size();
@@ -264,6 +299,11 @@ public class Graph {
     }
 
     // BFS: búsqueda en amplitud
+    // Análisis de Complejidad:
+    // - Cada nodo visitado una vez: O(n)
+    // - Cada arista explorada una vez: O(n)
+    // - Recurrencia: T(n) = O(n) + O(n) = O(n)
+    // - Conclusión: Complejidad FINAL = O(n)
     public List<String> bfs(String inicio, String destino) {
         if (!nodos.contains(inicio) || !nodos.contains(destino)) return null;
         if (inicio.equals(destino)) return new ArrayList<>(List.of(inicio));
@@ -298,6 +338,11 @@ public class Graph {
     }
 
     // DFS: búsqueda en profundidad
+    // Análisis de Complejidad (Recurrencia por sustracción):
+    // - T(n) = T(n-1) + O(grado(v))
+    // - Suma de todos los grados = 2n
+    // - Recurrencia: T(n) = O(n) + O(n)
+    // - Conclusión: Complejidad FINAL = O(n)
     public List<String> dfs(String inicio, String destino) {
         if (!nodos.contains(inicio) || !nodos.contains(destino)) return null;
         if (inicio.equals(destino)) return new ArrayList<>(List.of(inicio));
@@ -331,6 +376,12 @@ public class Graph {
     }
 
     // Ordenar nodos por cantidad de conexiones usando Divide y Vencerás (MergeSort)
+    // Análisis de Complejidad (Master Theorem):
+    // - Recurrencia: T(n) = 2*T(n/2) + O(n)
+    // - Parámetros: a=2, b=2, k=1
+    // - Caso: a = b^k => 2 = 2^1 ✓
+    // - Según Master Theorem: T(n) ∈ O(n^k log n) = O(n log n)
+    // - Conclusión: Complejidad FINAL = O(n log n)
     public List<Map<String, Object>> ordenarPorGrado() {
         List<Map<String, Object>> lista = new ArrayList<>();
         
