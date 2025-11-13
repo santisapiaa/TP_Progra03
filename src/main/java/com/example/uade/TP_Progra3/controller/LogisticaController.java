@@ -103,7 +103,7 @@ public class LogisticaController {
      * Devuelve TODAS las aristas (conexiones) del grafo tal como están en la BD.
      * Útil para depuración y entender la estructura de la red logística.
      */
-    @GetMapping(value = "/edges", produces = MediaType.APPLICATION_JSON_VALUE)
+    @GetMapping(value = "/aristas", produces = MediaType.APPLICATION_JSON_VALUE)
     public Mono<List<Map<String, Object>>> edges() {
         return almacenRepository.findAllEdges().collectList();
     }
@@ -128,7 +128,7 @@ public class LogisticaController {
      * Construye una matriz N×N donde [i][j] = costo mínimo de i a j.
      * Útil para: análisis global de la red, saber de un vistazo el costo entre cualquier par.
      */
-    @GetMapping(value = "/dynamic-programming", produces = MediaType.APPLICATION_JSON_VALUE)
+    @GetMapping(value = "/programacion-dinamica", produces = MediaType.APPLICATION_JSON_VALUE)
     public Mono<Map<String, Object>> floydWarshall() {
         return almacenRepository.findAllEdges()
                 .collectList()
@@ -142,7 +142,7 @@ public class LogisticaController {
      * Identifica los hubs (almacenes más conectados) que son críticos en la red logística.
      * Retorna lista de almacenes con cantidad de rutas, ordenados de mayor a menor conectividad.
      */
-    @GetMapping(value = "/divide-conquer", produces = MediaType.APPLICATION_JSON_VALUE)
+    @GetMapping(value = "/divide-venceras", produces = MediaType.APPLICATION_JSON_VALUE)
     public Mono<List<Map<String, Object>>> divideConquerSort() {
         return almacenRepository.findAllEdges()
                 .collectList()
