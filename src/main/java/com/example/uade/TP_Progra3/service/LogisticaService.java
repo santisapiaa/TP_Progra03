@@ -1,6 +1,6 @@
 package com.example.uade.TP_Progra3.service;
 
-import com.example.uade.TP_Progra3.graph.Edge;
+import com.example.uade.TP_Progra3.graph.Arista;
 import com.example.uade.TP_Progra3.graph.Graph;
 import org.springframework.stereotype.Service;
 
@@ -9,146 +9,173 @@ import java.util.*;
 @Service
 public class LogisticaService {
 
-    public Graph buildGraphFromEdges(List<Map<String,Object>> edges) {
-        Graph g = new Graph();
-        for (Map<String,Object> e : edges) {
-            Object of = e.get("from");
-            Object ot = e.get("to");
-            Object oc = e.get("cost");
-            if (of == null || ot == null) continue;
-            String a = of.toString();
-            String b = ot.toString();
-            double w = 1.0;
-            if (oc != null) {
-                try { w = Double.parseDouble(oc.toString()); } catch (NumberFormatException ex) { w = 1.0; }
+    // Construir grafo desde lista de aristas de la BD
+    public Graph construirGrafoDesdeAristas(List<Map<String,Object>> aristas) {
+        Graph grafo = new Graph();
+        for (Map<String,Object> arista : aristas) {
+            Object origen = arista.get("from");
+            Object destino = arista.get("to");
+            Object costo = arista.get("cost");
+            
+            if (origen == null || destino == null) continue;
+            
+            String nodoA = origen.toString();
+            String nodoB = destino.toString();
+            double peso = 1.0;
+            
+            if (costo != null) {
+                try { 
+                    peso = Double.parseDouble(costo.toString()); 
+                } catch (NumberFormatException ex) { 
+                    peso = 1.0; 
+                }
             }
-            g.addEdge(a,b,w);
+            
+            grafo.agregarArista(nodoA, nodoB, peso);
         }
-        return g;
+        return grafo;
     }
 
-    public Map<String,Object> dijkstraFromEdges(List<Map<String,Object>> edges, String from, String to) {
-        Graph g = buildGraphFromEdges(edges);
-        List<String> path = g.dijkstra(from, to);
-        Map<String,Object> resp = new HashMap<>();
-        if (path == null) {
-            resp.put("path", new ArrayList<>());
-            resp.put("totalCost", Double.POSITIVE_INFINITY);
-            return resp;
+    public Map<String,Object> dijkstraFromEdges(List<Map<String,Object>> aristas, String desde, String hasta) {
+        Graph grafo = construirGrafoDesdeAristas(aristas);
+        List<String> camino = grafo.dijkstra(desde, hasta);
+        
+        Map<String,Object> respuesta = new HashMap<>();
+        if (camino == null) {
+            respuesta.put("path", new ArrayList<>());
+            respuesta.put("totalCost", Double.POSITIVE_INFINITY);
+            return respuesta;
         }
-        double total = g.pathCost(path);
-        resp.put("path", path);
-        resp.put("totalCost", total);
-        return resp;
+        
+        double costoTotal = grafo.calcularCosto(camino);
+        respuesta.put("path", camino);
+        respuesta.put("totalCost", costoTotal);
+        return respuesta;
     }
 
-    public Map<String,Object> kruskalFromEdges(List<Map<String,Object>> edges) {
-        Graph g = buildGraphFromEdges(edges);
-        List<Edge> mst = g.kruskalMST();
-        List<Map<String,Object>> out = new ArrayList<>();
-        Set<String> covered = new HashSet<>();
-        double total = 0.0;
-        for (Edge e : mst) {
-            Map<String,Object> m = new HashMap<>();
-            m.put("from", e.u);
-            m.put("to", e.v);
-            m.put("cost", e.weight);
-            out.add(m);
-            covered.add(e.u); covered.add(e.v);
-            total += e.weight;
+    public Map<String,Object> kruskalFromEdges(List<Map<String,Object>> aristas) {
+        Graph grafo = construirGrafoDesdeAristas(aristas);
+        List<Arista> mst = grafo.kruskalMST();
+        
+        List<Map<String,Object>> aristasResultado = new ArrayList<>();
+        Set<String> nodosConectados = new HashSet<>();
+        double costoTotal = 0.0;
+        
+        for (Arista arista : mst) {
+            Map<String,Object> aristaMap = new HashMap<>();
+            aristaMap.put("from", arista.origen);
+            aristaMap.put("to", arista.destino);
+            aristaMap.put("cost", arista.peso);
+            aristasResultado.add(aristaMap);
+            
+            nodosConectados.add(arista.origen);
+            nodosConectados.add(arista.destino);
+            costoTotal += arista.peso;
         }
-        Map<String,Object> resp = new HashMap<>();
-        resp.put("edges", out);
-        resp.put("totalCost", total);
-        resp.put("nodesCovered", covered);
-        resp.put("edgesCount", out.size());
-        return resp;
+        
+        Map<String,Object> respuesta = new HashMap<>();
+        respuesta.put("edges", aristasResultado);
+        respuesta.put("totalCost", costoTotal);
+        respuesta.put("nodesCovered", nodosConectados);
+        respuesta.put("edgesCount", aristasResultado.size());
+        return respuesta;
     }
 
-    public Map<String,Object> primFromEdges(List<Map<String,Object>> edges, String start) {
-        Graph g = buildGraphFromEdges(edges);
-        List<Edge> mst = g.primMST(start);
-        List<Map<String,Object>> out = new ArrayList<>();
-        Set<String> covered = new HashSet<>();
-        double total = 0.0;
-        for (Edge e : mst) {
-            Map<String,Object> m = new HashMap<>();
-            m.put("from", e.u);
-            m.put("to", e.v);
-            m.put("cost", e.weight);
-            out.add(m);
-            covered.add(e.u); covered.add(e.v);
-            total += e.weight;
+    public Map<String,Object> primFromEdges(List<Map<String,Object>> aristas, String inicio) {
+        Graph grafo = construirGrafoDesdeAristas(aristas);
+        List<Arista> mst = grafo.primMST(inicio);
+        
+        List<Map<String,Object>> aristasResultado = new ArrayList<>();
+        Set<String> nodosConectados = new HashSet<>();
+        double costoTotal = 0.0;
+        
+        for (Arista arista : mst) {
+            Map<String,Object> aristaMap = new HashMap<>();
+            aristaMap.put("from", arista.origen);
+            aristaMap.put("to", arista.destino);
+            aristaMap.put("cost", arista.peso);
+            aristasResultado.add(aristaMap);
+            
+            nodosConectados.add(arista.origen);
+            nodosConectados.add(arista.destino);
+            costoTotal += arista.peso;
         }
-        Map<String,Object> resp = new HashMap<>();
-        resp.put("edges", out);
-        resp.put("totalCost", total);
-        resp.put("nodesCovered", covered);
-        resp.put("edgesCount", out.size());
-        return resp;
+        
+        Map<String,Object> respuesta = new HashMap<>();
+        respuesta.put("edges", aristasResultado);
+        respuesta.put("totalCost", costoTotal);
+        respuesta.put("nodesCovered", nodosConectados);
+        respuesta.put("edgesCount", aristasResultado.size());
+        return respuesta;
     }
 
-    public Map<String,Object> greedyFromEdges(List<Map<String,Object>> edges, String start) {
-        Graph g = buildGraphFromEdges(edges);
-        List<String> path = g.tspNearestNeighbor(start);
-        Map<String,Object> resp = new HashMap<>();
-        double total = g.pathCost(path);
-        boolean allVisited = (path.size() == g.getNodes().size());
-        resp.put("path", path);
-        resp.put("totalCost", total);
-        resp.put("allNodesVisited", allVisited);
-        return resp;
+    public Map<String,Object> greedyFromEdges(List<Map<String,Object>> aristas, String inicio) {
+        Graph grafo = construirGrafoDesdeAristas(aristas);
+        List<String> camino = grafo.tspVecinoCercano(inicio);
+        
+        Map<String,Object> respuesta = new HashMap<>();
+        double costoTotal = grafo.calcularCosto(camino);
+        boolean todosVisitados = (camino.size() == grafo.getNodos().size());
+        
+        respuesta.put("path", camino);
+        respuesta.put("totalCost", costoTotal);
+        respuesta.put("allNodesVisited", todosVisitados);
+        return respuesta;
     }
 
-    public Map<String,Object> floydFromEdges(List<Map<String,Object>> edges) {
-        Graph g = buildGraphFromEdges(edges);
-        return g.floydWarshall();
+    public Map<String,Object> floydFromEdges(List<Map<String,Object>> aristas) {
+        Graph grafo = construirGrafoDesdeAristas(aristas);
+        return grafo.floydWarshall();
     }
 
-    public Map<String,Object> bfsFromEdges(List<Map<String,Object>> edges, String from, String to) {
-        Graph g = buildGraphFromEdges(edges);
-        List<String> path = g.bfsPath(from, to);
-        Map<String,Object> resp = new HashMap<>();
-        if (path == null) {
-            resp.put("from", from);
-            resp.put("to", to);
-            resp.put("path", new ArrayList<>());
-            resp.put("totalCost", Double.POSITIVE_INFINITY);
-            resp.put("found", false);
-            return resp;
+    public Map<String,Object> bfsFromEdges(List<Map<String,Object>> aristas, String desde, String hasta) {
+        Graph grafo = construirGrafoDesdeAristas(aristas);
+        List<String> camino = grafo.bfs(desde, hasta);
+        
+        Map<String,Object> respuesta = new HashMap<>();
+        if (camino == null) {
+            respuesta.put("from", desde);
+            respuesta.put("to", hasta);
+            respuesta.put("path", new ArrayList<>());
+            respuesta.put("totalCost", Double.POSITIVE_INFINITY);
+            respuesta.put("found", false);
+            return respuesta;
         }
-        double total = g.pathCost(path);
-        resp.put("from", from);
-        resp.put("to", to);
-        resp.put("path", path);
-        resp.put("totalCost", total);
-        resp.put("found", true);
-        return resp;
+        
+        double costoTotal = grafo.calcularCosto(camino);
+        respuesta.put("from", desde);
+        respuesta.put("to", hasta);
+        respuesta.put("path", camino);
+        respuesta.put("totalCost", costoTotal);
+        respuesta.put("found", true);
+        return respuesta;
     }
 
-    public Map<String,Object> dfsFromEdges(List<Map<String,Object>> edges, String from, String to) {
-        Graph g = buildGraphFromEdges(edges);
-        List<String> path = g.dfsPath(from, to);
-        Map<String,Object> resp = new HashMap<>();
-        if (path == null) {
-            resp.put("from", from);
-            resp.put("to", to);
-            resp.put("path", new ArrayList<>());
-            resp.put("totalCost", Double.POSITIVE_INFINITY);
-            resp.put("found", false);
-            return resp;
+    public Map<String,Object> dfsFromEdges(List<Map<String,Object>> aristas, String desde, String hasta) {
+        Graph grafo = construirGrafoDesdeAristas(aristas);
+        List<String> camino = grafo.dfs(desde, hasta);
+        
+        Map<String,Object> respuesta = new HashMap<>();
+        if (camino == null) {
+            respuesta.put("from", desde);
+            respuesta.put("to", hasta);
+            respuesta.put("path", new ArrayList<>());
+            respuesta.put("totalCost", Double.POSITIVE_INFINITY);
+            respuesta.put("found", false);
+            return respuesta;
         }
-        double total = g.pathCost(path);
-        resp.put("from", from);
-        resp.put("to", to);
-        resp.put("path", path);
-        resp.put("totalCost", total);
-        resp.put("found", true);
-        return resp;
+        
+        double costoTotal = grafo.calcularCosto(camino);
+        respuesta.put("from", desde);
+        respuesta.put("to", hasta);
+        respuesta.put("path", camino);
+        respuesta.put("totalCost", costoTotal);
+        respuesta.put("found", true);
+        return respuesta;
     }
 
-    public List<Map<String, Object>> sortNodesByDegreeFromEdges(List<Map<String, Object>> edges) {
-        Graph g = buildGraphFromEdges(edges);
-        return g.sortNodesByDegree();
+    public List<Map<String, Object>> sortNodesByDegreeFromEdges(List<Map<String, Object>> aristas) {
+        Graph grafo = construirGrafoDesdeAristas(aristas);
+        return grafo.ordenarPorGrado();
     }
 }

@@ -3,174 +3,240 @@ package com.example.uade.TP_Progra3.graph;
 import java.util.*;
 
 public class Graph {
-    private final Map<String, List<Edge>> adj = new HashMap<>();
-    private final Set<String> nodes = new HashSet<>();
+    private final Map<String, List<Arista>> listaAdyacencia = new HashMap<>();
+    private final Set<String> nodos = new HashSet<>();
 
-    public Set<String> getNodes() { return nodes; }
-    public Map<String, List<Edge>> getAdj() { return adj; }
-
-    public void addEdge(String a, String b, double w) {
-        nodes.add(a); nodes.add(b);
-        adj.computeIfAbsent(a, k -> new ArrayList<>()).add(new Edge(a,b,w));
-        adj.computeIfAbsent(b, k -> new ArrayList<>()).add(new Edge(b,a,w));
+    public Set<String> getNodos() { 
+        return nodos; 
+    }
+    
+    public Map<String, List<Arista>> getListaAdyacencia() { 
+        return listaAdyacencia; 
     }
 
-    public List<String> dijkstra(String src, String dst) {
-        if (!nodes.contains(src) || !nodes.contains(dst)) return null;
-        Map<String, Double> dist = new HashMap<>();
-        Map<String, String> prev = new HashMap<>();
-        for (String n : nodes) dist.put(n, Double.POSITIVE_INFINITY);
-        dist.put(src, 0.0);
-        PriorityQueue<String> pq = new PriorityQueue<>(Comparator.comparingDouble(dist::get));
-        pq.add(src);
-        while (!pq.isEmpty()) {
-            String u = pq.poll();
-            double du = dist.get(u);
-            if (u.equals(dst)) break;
-            List<Edge> edges = adj.getOrDefault(u, Collections.emptyList());
-            for (Edge e : edges) {
-                String v = e.v;
-                double alt = du + e.weight;
-                if (alt < dist.getOrDefault(v, Double.POSITIVE_INFINITY)) {
-                    dist.put(v, alt);
-                    prev.put(v, u);
-                    pq.remove(v); // remove if present
-                    pq.add(v);
+    // Agregar arista no dirigida entre dos nodos
+    public void agregarArista(String nodoA, String nodoB, double peso) {
+        nodos.add(nodoA);
+        nodos.add(nodoB);
+        
+        listaAdyacencia.computeIfAbsent(nodoA, k -> new ArrayList<>())
+                       .add(new Arista(nodoA, nodoB, peso));
+        listaAdyacencia.computeIfAbsent(nodoB, k -> new ArrayList<>())
+                       .add(new Arista(nodoB, nodoA, peso));
+    }
+
+    // Dijkstra: camino más corto entre dos nodos
+    public List<String> dijkstra(String origen, String destino) {
+        if (!nodos.contains(origen) || !nodos.contains(destino)) return null;
+
+        Map<String, Double> distancias = new HashMap<>();
+        Map<String, String> anterior = new HashMap<>();
+        
+        for (String nodo : nodos) {
+            distancias.put(nodo, Double.POSITIVE_INFINITY);
+        }
+        distancias.put(origen, 0.0);
+        
+        PriorityQueue<String> cola = new PriorityQueue<>(Comparator.comparingDouble(distancias::get));
+        cola.add(origen);
+        
+        while (!cola.isEmpty()) {
+            String actual = cola.poll();
+            if (actual.equals(destino)) break;
+            
+            for (Arista arista : listaAdyacencia.getOrDefault(actual, Collections.emptyList())) {
+                double nuevaDist = distancias.get(actual) + arista.peso;
+                
+                if (nuevaDist < distancias.getOrDefault(arista.destino, Double.POSITIVE_INFINITY)) {
+                    distancias.put(arista.destino, nuevaDist);
+                    anterior.put(arista.destino, actual);
+                    cola.remove(arista.destino);
+                    cola.add(arista.destino);
                 }
             }
         }
-        if (!prev.containsKey(dst) && !src.equals(dst)) return null;
-        List<String> path = new ArrayList<>();
-        String cur = dst;
-        path.add(cur);
-        while (prev.containsKey(cur)) {
-            cur = prev.get(cur);
-            path.add(cur);
+        
+        if (!anterior.containsKey(destino) && !origen.equals(destino)) return null;
+        
+        List<String> camino = new ArrayList<>();
+        String actual = destino;
+        camino.add(actual);
+        
+        while (anterior.containsKey(actual)) {
+            actual = anterior.get(actual);
+            camino.add(actual);
         }
-        Collections.reverse(path);
-        return path;
+        
+        Collections.reverse(camino);
+        return camino;
     }
 
-    public List<Edge> kruskalMST() {
-        List<Edge> all = new ArrayList<>();
-        Set<String> seenPairs = new HashSet<>();
-        for (Map.Entry<String, List<Edge>> en : adj.entrySet()) {
-            for (Edge e : en.getValue()) {
-                String a = e.u; String b = e.v;
-                String key = a.compareTo(b) <= 0 ? a+"|"+b : b+"|"+a;
-                if (seenPairs.contains(key)) continue;
-                seenPairs.add(key);
-                all.add(new Edge(a,b,e.weight));
+    // Kruskal: árbol de expansión mínima
+    public List<Arista> kruskalMST() {
+        List<Arista> todasAristas = new ArrayList<>();
+        Set<String> vistas = new HashSet<>();
+        
+        for (Map.Entry<String, List<Arista>> entrada : listaAdyacencia.entrySet()) {
+            for (Arista arista : entrada.getValue()) {
+                String clave = arista.origen.compareTo(arista.destino) <= 0 
+                    ? arista.origen + "|" + arista.destino 
+                    : arista.destino + "|" + arista.origen;
+                
+                if (!vistas.contains(clave)) {
+                    vistas.add(clave);
+                    todasAristas.add(new Arista(arista.origen, arista.destino, arista.peso));
+                }
             }
         }
-        Collections.sort(all, Comparator.comparingDouble(e -> e.weight));
-        UnionFind uf = new UnionFind(nodes);
-        List<Edge> mst = new ArrayList<>();
-        for (Edge e : all) {
-            if (uf.union(e.u, e.v)) {
-                mst.add(e);
+        
+        Collections.sort(todasAristas, Comparator.comparingDouble(e -> e.peso));
+        
+        UnionFind uf = new UnionFind(nodos);
+        List<Arista> mst = new ArrayList<>();
+        
+        for (Arista arista : todasAristas) {
+            if (uf.unir(arista.origen, arista.destino)) {
+                mst.add(arista);
             }
         }
+        
         return mst;
     }
 
-    public List<Edge> primMST(String start) {
-        if (nodes.isEmpty()) return new ArrayList<>();
-        String s = start;
-        if (s == null || !nodes.contains(s)) s = nodes.iterator().next();
-        Set<String> visited = new HashSet<>();
-        PriorityQueue<Edge> pq = new PriorityQueue<>(Comparator.comparingDouble(e -> e.weight));
-        List<Edge> mst = new ArrayList<>();
-        visited.add(s);
-        pq.addAll(adj.getOrDefault(s, Collections.emptyList()));
-        while (!pq.isEmpty() && visited.size() < nodes.size()) {
-            Edge e = pq.poll();
-            if (visited.contains(e.v)) continue;
-            visited.add(e.v);
-            mst.add(e);
-            for (Edge next : adj.getOrDefault(e.v, Collections.emptyList())) {
-                if (!visited.contains(next.v)) pq.add(next);
+    // Prim: árbol de expansión mínima desde un nodo inicial
+    public List<Arista> primMST(String inicio) {
+        if (nodos.isEmpty()) return new ArrayList<>();
+        
+        String nodoInicial = inicio;
+        if (nodoInicial == null || !nodos.contains(nodoInicial)) {
+            nodoInicial = nodos.iterator().next();
+        }
+        
+        Set<String> visitados = new HashSet<>();
+        PriorityQueue<Arista> cola = new PriorityQueue<>(Comparator.comparingDouble(e -> e.peso));
+        List<Arista> mst = new ArrayList<>();
+        
+        visitados.add(nodoInicial);
+        cola.addAll(listaAdyacencia.getOrDefault(nodoInicial, Collections.emptyList()));
+        
+        while (!cola.isEmpty() && visitados.size() < nodos.size()) {
+            Arista arista = cola.poll();
+            
+            if (visitados.contains(arista.destino)) continue;
+            
+            visitados.add(arista.destino);
+            mst.add(arista);
+            
+            for (Arista siguiente : listaAdyacencia.getOrDefault(arista.destino, Collections.emptyList())) {
+                if (!visitados.contains(siguiente.destino)) {
+                    cola.add(siguiente);
+                }
             }
         }
+        
         return mst;
     }
 
-    public double getWeightBetween(String a, String b) {
-        List<Edge> edges = adj.getOrDefault(a, Collections.emptyList());
-        double minWeight = Double.POSITIVE_INFINITY;
-        for (Edge e : edges) {
-            if (e.v.equals(b)) {
-                minWeight = Math.min(minWeight, e.weight);
+    // Obtener peso de arista entre dos nodos
+    public double obtenerPeso(String nodoA, String nodoB) {
+        List<Arista> aristas = listaAdyacencia.getOrDefault(nodoA, Collections.emptyList());
+        double pesoMin = Double.POSITIVE_INFINITY;
+        
+        for (Arista arista : aristas) {
+            if (arista.destino.equals(nodoB)) {
+                pesoMin = Math.min(pesoMin, arista.peso);
             }
         }
-        return minWeight;
+        
+        return pesoMin;
     }
 
-    public double pathCost(List<String> path) {
-        if (path == null || path.size() < 2) return 0.0;
+    // Calcular costo total de un camino
+    public double calcularCosto(List<String> camino) {
+        if (camino == null || camino.size() < 2) return 0.0;
+        
         double total = 0.0;
-        for (int i = 0; i < path.size() - 1; i++) {
-            double w = getWeightBetween(path.get(i), path.get(i+1));
-            if (Double.isInfinite(w)) return Double.POSITIVE_INFINITY;
-            total += w;
+        
+        for (int i = 0; i < camino.size() - 1; i++) {
+            double peso = obtenerPeso(camino.get(i), camino.get(i + 1));
+            if (Double.isInfinite(peso)) return Double.POSITIVE_INFINITY;
+            total += peso;
         }
+        
         return total;
     }
 
-    public List<String> tspNearestNeighbor(String start) {
-        if (nodes.isEmpty()) return new ArrayList<>();
-        String current = start;
-        if (current == null || !nodes.contains(current)) {
-            current = nodes.iterator().next();
-        }
-        Set<String> visited = new HashSet<>();
-        List<String> path = new ArrayList<>();
-        path.add(current);
-        visited.add(current);
+    // TSP Greedy: vecino más cercano
+    public List<String> tspVecinoCercano(String inicio) {
+        if (nodos.isEmpty()) return new ArrayList<>();
         
-        while (visited.size() < nodes.size()) {
-            String nearest = null;
-            double minCost = Double.POSITIVE_INFINITY;
+        String actual = inicio;
+        if (actual == null || !nodos.contains(actual)) {
+            actual = nodos.iterator().next();
+        }
+        
+        Set<String> visitados = new HashSet<>();
+        List<String> recorrido = new ArrayList<>();
+        
+        recorrido.add(actual);
+        visitados.add(actual);
+        
+        while (visitados.size() < nodos.size()) {
+            String cercano = null;
+            double minCosto = Double.POSITIVE_INFINITY;
             
-            for (String candidate : nodes) {
-                if (!visited.contains(candidate)) {
-                    double dist = getWeightBetween(current, candidate);
-                    if (dist < minCost) {
-                        minCost = dist;
-                        nearest = candidate;
+            for (String candidato : nodos) {
+                if (!visitados.contains(candidato)) {
+                    double dist = obtenerPeso(actual, candidato);
+                    
+                    if (dist < minCosto) {
+                        minCosto = dist;
+                        cercano = candidato;
                     }
                 }
             }
             
-            if (nearest == null) break;
-            path.add(nearest);
-            visited.add(nearest);
-            current = nearest;
+            if (cercano == null) break;
+            
+            recorrido.add(cercano);
+            visitados.add(cercano);
+            actual = cercano;
         }
-        return path;
+        
+        return recorrido;
     }
 
+    // Floyd-Warshall: todos los caminos más cortos
     public Map<String, Object> floydWarshall() {
-        List<String> nodeList = new ArrayList<>(nodes);
-        int n = nodeList.size();
+        List<String> listaNodos = new ArrayList<>(nodos);
+        int n = listaNodos.size();
         double[][] dist = new double[n][n];
         
+        // Inicializar matriz
         for (int i = 0; i < n; i++) {
             for (int j = 0; j < n; j++) {
-                if (i == j) dist[i][j] = 0.0;
-                else dist[i][j] = Double.POSITIVE_INFINITY;
+                if (i == j) {
+                    dist[i][j] = 0.0;
+                } else {
+                    dist[i][j] = Double.POSITIVE_INFINITY;
+                }
             }
         }
         
+        // Llenar con aristas existentes
         for (int i = 0; i < n; i++) {
-            String u = nodeList.get(i);
+            String origen = listaNodos.get(i);
             for (int j = 0; j < n; j++) {
-                String v = nodeList.get(j);
-                double w = getWeightBetween(u, v);
-                if (!Double.isInfinite(w)) dist[i][j] = w;
+                String destino = listaNodos.get(j);
+                double peso = obtenerPeso(origen, destino);
+                
+                if (!Double.isInfinite(peso)) {
+                    dist[i][j] = peso;
+                }
             }
         }
         
+        // Algoritmo principal
         for (int k = 0; k < n; k++) {
             for (int i = 0; i < n; i++) {
                 for (int j = 0; j < n; j++) {
@@ -181,151 +247,152 @@ public class Graph {
             }
         }
         
-        Map<String, Object> resp = new HashMap<>();
-        Map<String, Map<String, Double>> matrix = new HashMap<>();
+        // Convertir a mapa
+        Map<String, Object> resultado = new HashMap<>();
+        Map<String, Map<String, Double>> matriz = new HashMap<>();
+        
         for (int i = 0; i < n; i++) {
-            Map<String, Double> row = new HashMap<>();
+            Map<String, Double> fila = new HashMap<>();
             for (int j = 0; j < n; j++) {
-                row.put(nodeList.get(j), dist[i][j]);
+                fila.put(listaNodos.get(j), dist[i][j]);
             }
-            matrix.put(nodeList.get(i), row);
+            matriz.put(listaNodos.get(i), fila);
         }
-        resp.put("shortestPaths", matrix);
-        return resp;
+        
+        resultado.put("caminosMinimos", matriz);
+        return resultado;
     }
 
-    public List<String> bfsPath(String start, String target) {
-        if (!nodes.contains(start) || !nodes.contains(target)) return null;
-        if (start.equals(target)) return new ArrayList<>(List.of(start));
+    // BFS: búsqueda en amplitud
+    public List<String> bfs(String inicio, String destino) {
+        if (!nodos.contains(inicio) || !nodos.contains(destino)) return null;
+        if (inicio.equals(destino)) return new ArrayList<>(List.of(inicio));
         
-        Queue<List<String>> queue = new LinkedList<>();
-        queue.add(new ArrayList<>(List.of(start)));
-        Set<String> visited = new HashSet<>();
-        visited.add(start);
+        Queue<List<String>> cola = new LinkedList<>();
+        cola.add(new ArrayList<>(List.of(inicio)));
         
-        while (!queue.isEmpty()) {
-            List<String> path = queue.poll();
-            String last = path.get(path.size() - 1);
+        Set<String> visitados = new HashSet<>();
+        visitados.add(inicio);
+        
+        while (!cola.isEmpty()) {
+            List<String> camino = cola.poll();
+            String ultimo = camino.get(camino.size() - 1);
             
-            for (Edge e : adj.getOrDefault(last, Collections.emptyList())) {
-                String nxt = e.v;
-                if (!visited.contains(nxt)) {
-                    visited.add(nxt);
-                    List<String> nextPath = new ArrayList<>(path);
-                    nextPath.add(nxt);
+            for (Arista arista : listaAdyacencia.getOrDefault(ultimo, Collections.emptyList())) {
+                String vecino = arista.destino;
+                
+                if (!visitados.contains(vecino)) {
+                    visitados.add(vecino);
                     
-                    if (nxt.equals(target)) {
-                        return nextPath;
-                    }
-                    queue.add(nextPath);
+                    List<String> nuevoCamino = new ArrayList<>(camino);
+                    nuevoCamino.add(vecino);
+                    
+                    if (vecino.equals(destino)) return nuevoCamino;
+                    
+                    cola.add(nuevoCamino);
                 }
             }
         }
-        return null; // No path found
+        
+        return null;
     }
 
-    public List<String> dfsPath(String start, String target) {
-        if (!nodes.contains(start) || !nodes.contains(target)) return null;
-        if (start.equals(target)) return new ArrayList<>(List.of(start));
+    // DFS: búsqueda en profundidad
+    public List<String> dfs(String inicio, String destino) {
+        if (!nodos.contains(inicio) || !nodos.contains(destino)) return null;
+        if (inicio.equals(destino)) return new ArrayList<>(List.of(inicio));
         
-        Set<String> visited = new HashSet<>();
-        List<String> path = new ArrayList<>();
-        if (dfsHelper(start, target, visited, path)) {
-            return path;
+        Set<String> visitados = new HashSet<>();
+        List<String> camino = new ArrayList<>();
+        
+        if (dfsRecursivo(inicio, destino, visitados, camino)) {
+            return camino;
         }
-        return null; // No path found
+        
+        return null;
     }
 
-    private boolean dfsHelper(String current, String target, Set<String> visited, List<String> path) {
-        visited.add(current);
-        path.add(current);
+    private boolean dfsRecursivo(String actual, String destino, Set<String> visitados, List<String> camino) {
+        visitados.add(actual);
+        camino.add(actual);
         
-        if (current.equals(target)) {
-            return true;
-        }
+        if (actual.equals(destino)) return true;
         
-        for (Edge e : adj.getOrDefault(current, Collections.emptyList())) {
-            String nxt = e.v;
-            if (!visited.contains(nxt)) {
-                if (dfsHelper(nxt, target, visited, path)) {
+        for (Arista arista : listaAdyacencia.getOrDefault(actual, Collections.emptyList())) {
+            if (!visitados.contains(arista.destino)) {
+                if (dfsRecursivo(arista.destino, destino, visitados, camino)) {
                     return true;
                 }
             }
         }
         
-        path.remove(path.size() - 1);
+        camino.remove(camino.size() - 1);
         return false;
     }
 
-    public static void mergeSort(List<String> list, int left, int right) {
-        if (list == null || list.isEmpty()) return;
-        if (left < right) {
-            int mid = left + (right - left) / 2;
-            mergeSort(list, left, mid);
-            mergeSort(list, mid + 1, right);
-            merge(list, left, mid, right);
-        }
-    }
-
-    public List<Map<String, Object>> sortNodesByDegree() {
-        // Build list of [nodeName, degree]
-        List<Map<String, Object>> nodesList = new ArrayList<>();
-        for (String node : nodes) {
-            int degree = adj.getOrDefault(node, Collections.emptyList()).size();
-            Map<String, Object> entry = new HashMap<>();
-            entry.put("nombre", node);
-            entry.put("rutas", degree);
-            nodesList.add(entry);
+    // Ordenar nodos por cantidad de conexiones usando Divide y Vencerás (MergeSort)
+    public List<Map<String, Object>> ordenarPorGrado() {
+        List<Map<String, Object>> lista = new ArrayList<>();
+        
+        for (String nodo : nodos) {
+            int grado = listaAdyacencia.getOrDefault(nodo, Collections.emptyList()).size();
+            
+            Map<String, Object> info = new HashMap<>();
+            info.put("almacen", nodo);
+            info.put("conexiones", grado);
+            lista.add(info);
         }
         
-        // Sort by degree (descending) using mergesort
-        mergesortByDegree(nodesList, 0, nodesList.size() - 1);
-        return nodesList;
+        // Aplicar MergeSort (divide y vencerás)
+        return mergeSort(lista, 0, lista.size() - 1);
     }
-
-    private static void mergesortByDegree(List<Map<String, Object>> list, int left, int right) {
-        if (list == null || list.isEmpty()) return;
-        if (left < right) {
-            int mid = left + (right - left) / 2;
-            mergesortByDegree(list, left, mid);
-            mergesortByDegree(list, mid + 1, right);
-            mergeByDegree(list, left, mid, right);
+    
+    // Divide: partir la lista en mitades y ordenar recursivamente
+    private List<Map<String, Object>> mergeSort(List<Map<String, Object>> lista, int inicio, int fin) {
+        if (inicio >= fin) {
+            return new ArrayList<>(List.of(lista.get(inicio)));
         }
+        
+        // Dividir en dos mitades
+        int medio = inicio + (fin - inicio) / 2;
+        
+        List<Map<String, Object>> izquierda = mergeSort(lista, inicio, medio);
+        List<Map<String, Object>> derecha = mergeSort(lista, medio + 1, fin);
+        
+        // Vencerás: combinar las dos mitades ordenadas
+        return combinar(izquierda, derecha);
     }
-
-    private static void mergeByDegree(List<Map<String, Object>> list, int left, int mid, int right) {
-        List<Map<String, Object>> temp = new ArrayList<>();
-        int i = left, j = mid + 1;
-        while (i <= mid && j <= right) {
-            int degreeI = (int) list.get(i).get("rutas");
-            int degreeJ = (int) list.get(j).get("rutas");
-            if (degreeI >= degreeJ) {  // Descending order
-                temp.add(list.get(i++));
+    
+    // Combinar dos listas ordenadas en una sola lista ordenada
+    private List<Map<String, Object>> combinar(List<Map<String, Object>> izquierda, List<Map<String, Object>> derecha) {
+        List<Map<String, Object>> resultado = new ArrayList<>();
+        int i = 0, j = 0;
+        
+        // Comparar elemento por elemento y agregar el mayor
+        while (i < izquierda.size() && j < derecha.size()) {
+            int conexionesIzq = (int) izquierda.get(i).get("conexiones");
+            int conexionesDer = (int) derecha.get(j).get("conexiones");
+            
+            if (conexionesIzq >= conexionesDer) {
+                resultado.add(izquierda.get(i));
+                i++;
             } else {
-                temp.add(list.get(j++));
+                resultado.add(derecha.get(j));
+                j++;
             }
         }
-        while (i <= mid) temp.add(list.get(i++));
-        while (j <= right) temp.add(list.get(j++));
-        for (int k = 0; k < temp.size(); k++) {
-            list.set(left + k, temp.get(k));
+        
+        // Agregar elementos restantes
+        while (i < izquierda.size()) {
+            resultado.add(izquierda.get(i));
+            i++;
         }
-    }
-
-    private static void merge(List<String> list, int left, int mid, int right) {
-        List<String> temp = new ArrayList<>();
-        int i = left, j = mid + 1;
-        while (i <= mid && j <= right) {
-            if (list.get(i).compareTo(list.get(j)) <= 0) {
-                temp.add(list.get(i++));
-            } else {
-                temp.add(list.get(j++));
-            }
+        
+        while (j < derecha.size()) {
+            resultado.add(derecha.get(j));
+            j++;
         }
-        while (i <= mid) temp.add(list.get(i++));
-        while (j <= right) temp.add(list.get(j++));
-        for (int k = 0; k < temp.size(); k++) {
-            list.set(left + k, temp.get(k));
-        }
+        
+        return resultado;
     }
 }
